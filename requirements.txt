@@ -1,0 +1,4 @@
+textual>=0.80.0
+reportlab>=4.0.0
+openpyxl>=3.1.0
+argon2-cffi>=23.1.0

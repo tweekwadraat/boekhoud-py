@@ -1,0 +1,32 @@
+# Python bytecode & build artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+build/
+dist/
+*.egg-info/
+
+# Virtuele environments
+venv/
+.venv/
+env/
+
+# IDE & editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Boekhoud.py: lokale administraties en runtime-bestanden
+data/*.db
+*.log
+
+# Geheimen (voor de zekerheid - mocht het later relevant worden)
+.env
+*.key

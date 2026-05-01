@@ -1,6 +1,6 @@
 from textual.widget import Widget
 from textual.app import ComposeResult
-from textual.containers import Horizontal
+from textual.containers import HorizontalGroup
 from textual.widgets import Static
 
 
@@ -15,20 +15,17 @@ class JournalEntryHeader(Widget):
     JournalEntryHeader {
         height: auto;
     }
-    JournalEntryHeader Horizontal {
-        height: auto;
-    }
-    JournalEntryHeader Horizontal Static.balance {
+    JournalEntryHeader HorizontalGroup Static.balance {
         width: 1fr;
         text-align: right;
     }
-    JournalEntryHeader Horizontal Static {
+    JournalEntryHeader HorizontalGroup Static {
         width: auto;
     }
     """
 
     def compose(self) -> ComposeResult:
-        with Horizontal():
+        with HorizontalGroup():
             yield Static('Dagboek      : VER1')
             yield Static('Saldo: 0.00', classes='balance')
         yield Static('Boekstuknr   : 2026-0042')

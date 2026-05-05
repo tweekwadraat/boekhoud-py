@@ -2,6 +2,7 @@ from textual.widget import Widget
 from textual.app import ComposeResult
 from textual.widgets import DataTable
 from textual import events
+from textual.coordinate import Coordinate
 
 class JournalEntryLines(Widget):
     """Lines of one journal entry,
@@ -30,3 +31,8 @@ class JournalEntryLines(Widget):
         elif event.key == 'down' and table.cursor_row == table.row_count - 1:
             event.stop()
             event.prevent_default()
+
+        elif event.key == 'enter':
+            coordinate = Coordinate(table.cursor_row, table.cursor_column)
+            value = table.get_cell_at(coordinate)
+            self.notify(f'Cell: {value}')

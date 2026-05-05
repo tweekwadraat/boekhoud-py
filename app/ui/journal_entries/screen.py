@@ -2,12 +2,15 @@ from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.widgets import Footer
 from app.ui.journal_entries.journal_entry_header import JournalEntryHeader
+from app.ui.journal_entries.journal_entry_lines import JournalEntryLines
 
 class JournalEntriesScreen(Screen):
     BINDINGS = [("f9", "next", "Volgende boeking"), ("f10", "previous", "Vorige boeking"), ("escape", "back", "Terug")]
     
     def compose(self) -> ComposeResult:
         yield JournalEntryHeader()
+
+        yield JournalEntryLines()
 
         footer = Footer()
         footer.show_command_palette = False

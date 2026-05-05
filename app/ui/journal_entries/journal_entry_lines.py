@@ -30,8 +30,12 @@ class JournalEntryLines(Widget):
     def on_key(self, event: events.Key) -> None:
         table = self.query_one(DataTable)
 
-        # Als er al een Input openstaat, niets afvangen — Input doet zijn werk
+        # Tijdens een edit-sessie alleen Esc afhandelen, rest aan Input overlaten
         if self._editing_input is not None:
+            if event.key == 'escape':
+                event.stop()
+                event.prevent_default()
+                self._close_editor()
             return
 
         if event.key == 'up' and table.cursor_row == 0:
@@ -58,13 +62,11 @@ class JournalEntryLines(Widget):
         editor.cursor_position = len(starting_text)
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
-        """Wordt aangeroepen wanneer de gebruiker Enter drukt in de Input."""
-        # Voor nu: alleen sluiten. Opslaan in de cel volgt in 5c-iii.
+        """Enter in de Input → waarde opslaan in de cel en Input sluiten."""
+        table = self.query_one(DataTable)
+        coordinate = Coordinate(table.cursor_row, table.cursor_column)
+        table.update_cell_at(coordinate, event.value)
         self._close_editor()
-
-    def on_key_when_editing_escape(self, event: events.Key) -> None:
-        """Placeholder — Esc-afhandeling regelen we via een aparte handler."""
-        pass
 
     def _close_editor(self) -> None:
         """Sluit de Input weer, focus terug naar de tabel."""

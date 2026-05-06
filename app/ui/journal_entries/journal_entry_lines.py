@@ -11,6 +11,9 @@ class JournalEntryLines(Widget):
 
     Shows GL-account, description, relation (only for D/C-accounts) and amount.
     """
+    # Kolommen die niet leeg achtergelaten mogen worden bij Enter-doorgang.
+    # 0 = GBnr, 3 = Bedrag — beide bepalend voor saldo en boekhoudregel.
+    REQUIRED_COLUMNS = {0, 3}
 
     def __init__(self) -> None:
         super().__init__()
@@ -37,6 +40,11 @@ class JournalEntryLines(Widget):
                 event.prevent_default()
                 self._close_editor()
             return
+        
+        if event.key == 'enter':
+            event.stop()
+            event.prevent_default()
+            self._advance_to_next_column()
 
         if event.key == 'up' and table.cursor_row == 0:
             event.stop()
@@ -114,6 +122,28 @@ class JournalEntryLines(Widget):
         coordinate = Coordinate(table.cursor_row, table.cursor_column)
         table.update_cell_at(coordinate, event.value)
         self._close_editor()
+        self._advance_to_next_column()
+
+    def _advance_to_next_column(self) -> None:
+        """Cursor één kolom naar rechts.
+
+        Blokkeert wanneer de huidige cel verplicht is en leeg gelaten wordt.
+        Doet niets op de laatste kolom.
+        """
+        table = self.query_one(DataTable)
+        column = table.cursor_column
+        row = table.cursor_row
+        
+        # blokkade check
+        if column in self.REQUIRED_COLUMNS:
+            coordinate = Coordinate(row, column)
+            value = table.get_cell_at(coordinate)
+            if not value.strip():
+                return
+
+        # versprong
+        if column < len(table.ordered_columns) - 1:
+            table.cursor_coordinate = Coordinate(row, column + 1)
 
     def _close_editor(self) -> None:
         """Sluit de Input weer, focus terug naar de tabel."""

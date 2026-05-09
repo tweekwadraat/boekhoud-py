@@ -4,7 +4,6 @@ from textual.widgets import DataTable, Input
 from textual import events
 from textual.coordinate import Coordinate
 
-
 class JournalEntryLines(Widget):
     """Lines of one journal entry,
     shown on the journal entries screen.
@@ -14,6 +13,7 @@ class JournalEntryLines(Widget):
     # Kolommen die niet leeg achtergelaten mogen worden bij Enter-doorgang.
     # 0 = GBnr, 3 = Bedrag — beide bepalend voor saldo en boekhoudregel.
     REQUIRED_COLUMNS = {0, 3}
+    LAST_COLUMN = 3
 
     def __init__(self) -> None:
         super().__init__()
@@ -44,9 +44,9 @@ class JournalEntryLines(Widget):
         if event.key == 'enter':
             event.stop()
             event.prevent_default()
-            self._advance_to_next_column()
+            self._advance_to_next_field(table.cursor_row, table.cursor_column)
 
-        if event.key == 'up' and table.cursor_row == 0:
+        elif event.key == 'up' and table.cursor_row == 0:
             event.stop()
             event.prevent_default()
 
@@ -122,17 +122,20 @@ class JournalEntryLines(Widget):
         coordinate = Coordinate(table.cursor_row, table.cursor_column)
         table.update_cell_at(coordinate, event.value)
         self._close_editor()
-        self._advance_to_next_column()
+        self._advance_to_next_field(table.cursor_row, table.cursor_column)
 
-    def _advance_to_next_column(self) -> None:
-        """Cursor één kolom naar rechts.
+    def _advance_to_next_field(self, row: int, column: int) -> None:
+        """Verspringt naar het volgende invoerveld in de Enter-keten.
 
-        Blokkeert wanneer de huidige cel verplicht is en leeg gelaten wordt.
-        Doet niets op de laatste kolom.
+        Op kolom 0–2: cursor één kolom naar rechts in dezelfde rij.
+        Op kolom 3 (Bedrag): cursor naar kolom 0 van de volgende rij; als
+        de huidige rij de laatste is, wordt eerst een lege rij toegevoegd.
+
+        Wanneer de huidige cel verplicht is (kolom 0 of 3) en leeg, blokkeert
+        de versprong stilzwijgend — de cursor blijft staan.
         """
+
         table = self.query_one(DataTable)
-        column = table.cursor_column
-        row = table.cursor_row
         
         # blokkade check
         if column in self.REQUIRED_COLUMNS:
@@ -142,7 +145,11 @@ class JournalEntryLines(Widget):
                 return
 
         # versprong
-        if column < len(table.ordered_columns) - 1:
+        if column == self.LAST_COLUMN:
+            if row == table.row_count - 1:
+                table.add_row("", "", "", "")
+            table.cursor_coordinate = Coordinate(row + 1, 0)
+        else:
             table.cursor_coordinate = Coordinate(row, column + 1)
 
     def _close_editor(self) -> None:

@@ -46,11 +46,17 @@ class JournalEntryLines(Widget):
             event.prevent_default()
             self._advance_to_next_field(table.cursor_row, table.cursor_column)
 
-        elif event.key == 'up' and table.cursor_row == 0:
-            event.stop()
-            event.prevent_default()
+        elif event.key == 'up':
+            if not self._is_row_complete(table, table.cursor_row) or table.cursor_row == 0:
+                event.stop()
+                event.prevent_default()
 
-        elif event.key == 'down' and table.cursor_row == table.row_count - 1:
+        elif event.key == 'down':
+            if not self._is_row_complete(table, table.cursor_row) or table.cursor_row == table.row_count - 1:
+                event.stop()
+                event.prevent_default()
+
+        elif event.key in ('left', 'right'):
             event.stop()
             event.prevent_default()
 
@@ -134,23 +140,38 @@ class JournalEntryLines(Widget):
         Wanneer de huidige cel verplicht is (kolom 0 of 3) en leeg, blokkeert
         de versprong stilzwijgend — de cursor blijft staan.
         """
-
         table = self.query_one(DataTable)
-        
-        # blokkade check
+
+        # Fase 1: bewaking — verplichte cel mag niet leeg zijn
         if column in self.REQUIRED_COLUMNS:
-            coordinate = Coordinate(row, column)
-            value = table.get_cell_at(coordinate)
+            value = table.get_cell_at(Coordinate(row, column))
             if not value.strip():
                 return
 
-        # versprong
+        # Fase 2: versprong
         if column == self.LAST_COLUMN:
             if row == table.row_count - 1:
-                table.add_row("", "", "", "")
-            table.cursor_coordinate = Coordinate(row + 1, 0)
+                self._append_empty_row_and_move_cursor()
+            else:
+                table.cursor_coordinate = Coordinate(row + 1, 0)
         else:
             table.cursor_coordinate = Coordinate(row, column + 1)
+
+
+    def _append_empty_row_and_move_cursor(self) -> None:
+        """Voegt onderaan een lege rij toe en zet de cursor op (laatste rij, 0)."""
+        table = self.query_one(DataTable)
+        table.add_row("", "", "", "")
+        table.cursor_coordinate = Coordinate(table.row_count - 1, 0)
+        
+    def _is_row_complete(self, table: DataTable, row: int) -> bool:
+        """Geeft true terug als verplichte velden niet leeg zijn"""
+        for column in self.REQUIRED_COLUMNS:
+            coordinate = Coordinate(row, column)
+            value = table.get_cell_at(coordinate)
+            if not value.strip():
+                return False
+        return True
 
     def _close_editor(self) -> None:
         """Sluit de Input weer, focus terug naar de tabel."""

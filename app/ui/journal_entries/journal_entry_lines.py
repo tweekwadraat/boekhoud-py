@@ -47,14 +47,28 @@ class JournalEntryLines(Widget):
             self._advance_to_next_field(table.cursor_row, table.cursor_column)
 
         elif event.key == 'up':
-            if not self._is_row_complete(table, table.cursor_row) or table.cursor_row == 0:
-                event.stop()
-                event.prevent_default()
+            if table.cursor_column == 0 and table.cursor_row != 0 and (
+                self._is_row_complete(table, table.cursor_row)
+                or self._is_row_empty(table, table.cursor_row)
+            ):
+                if self._is_row_empty(table, table.cursor_row):
+                    row_key = table.coordinate_to_cell_key(Coordinate(table.cursor_row, 0)).row_key
+                    table.remove_row(row_key)
+                    event.stop()
+                    event.prevent_default()
+                return
+            event.stop()
+            event.prevent_default()
 
         elif event.key == 'down':
-            if not self._is_row_complete(table, table.cursor_row) or table.cursor_row == table.row_count - 1:
-                event.stop()
-                event.prevent_default()
+            if table.cursor_column == 0 and self._is_row_complete(table, table.cursor_row):
+                if table.cursor_row == table.row_count - 1:
+                    self._append_empty_row_and_move_cursor()
+                    event.stop()                # ← wij doen het werk, Textual mag niet ook nog
+                    event.prevent_default()
+                return                          # ← bij niet-laatste rij: Textual doet de cursor-beweging
+            event.stop()
+            event.prevent_default()
 
         elif event.key in ('left', 'right'):
             event.stop()
@@ -163,7 +177,7 @@ class JournalEntryLines(Widget):
         table = self.query_one(DataTable)
         table.add_row("", "", "", "")
         table.cursor_coordinate = Coordinate(table.row_count - 1, 0)
-        
+
     def _is_row_complete(self, table: DataTable, row: int) -> bool:
         """Geeft true terug als verplichte velden niet leeg zijn"""
         for column in self.REQUIRED_COLUMNS:
@@ -172,6 +186,16 @@ class JournalEntryLines(Widget):
             if not value.strip():
                 return False
         return True
+
+    def _is_row_empty(self, table: DataTable, row: int) -> bool:
+        """Geeft true terug als alle velden leeg zijn"""
+        for column in range(len(table.columns)):                      # alle kolommen
+            coordinate = Coordinate(row, column)
+            value = table.get_cell_at(coordinate)
+            if value.strip():                              # cel niet leeg?
+                return False
+        return True
+
 
     def _close_editor(self) -> None:
         """Sluit de Input weer, focus terug naar de tabel."""

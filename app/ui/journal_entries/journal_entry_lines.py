@@ -46,6 +46,16 @@ class JournalEntryLines(Widget):
             event.prevent_default()
             self._advance_to_next_field(table.cursor_row, table.cursor_column)
 
+        elif event.key == 'escape':
+            event.stop()
+            event.prevent_default()
+            row = table.cursor_row
+            if not self._is_row_empty(table, row) and not self._is_row_complete(table, row):
+                for col in range(self.LAST_COLUMN + 1):
+                    table.update_cell_at(Coordinate(row, col), '')
+                table.move_cursor(row=row, column=0)
+            return
+
         elif event.key == 'up':
             if table.cursor_column == 0 and table.cursor_row != 0 and (
                 self._is_row_complete(table, table.cursor_row)

@@ -3,7 +3,7 @@ from textual.app import ComposeResult
 from textual.containers import HorizontalGroup
 from textual.widgets import Static, Input, Label
 from textual.message import Message
-
+from decimal import Decimal
 
 class EscapableInput(Input):
     """An Input that posts an EscapePressed message when Esc is pressed."""
@@ -54,6 +54,10 @@ class JournalEntryHeader(Widget):
         border: none;
         height: 1;
     }
+
+    JournalEntryHeader Static.out-of-balance {
+        text-style: reverse;
+    }
     """
 
     class Completed(Message):
@@ -66,7 +70,7 @@ class JournalEntryHeader(Widget):
         with HorizontalGroup():
             yield Label('Dagboek      :')
             yield EscapableInput(value='VER1', id='diary')
-            yield Static('Saldo: 0.00', classes='balance')
+            yield Static('Saldo: 0.00', classes='balance', id='balance')
         with HorizontalGroup():
             yield Label('Boekstuknr   :')
             yield EscapableInput(value='2026-0042', id='entry_number')
@@ -84,6 +88,12 @@ class JournalEntryHeader(Widget):
     def focus_last_field(self) -> None:
         """Focus the description input — used when returning from the lines zone."""
         self.query_one('#description', EscapableInput).focus()
+
+    def update_balance(self, balance: Decimal) -> None:
+        """Update the balance display with the given value."""
+        balance_widget = self.query_one('#balance', Static)
+        balance_widget.update(f'Saldo: {balance:.2f}')
+        balance_widget.set_class(balance != Decimal('0'), 'out-of-balance')
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
         """Move focus to the next header field when Enter is pressed."""
@@ -105,6 +115,8 @@ class JournalEntryHeader(Widget):
             self.query_one(f'#{previous_id}', EscapableInput).focus()
         else:
             self.post_message(self.Cancelled())
+
+
 
 
 

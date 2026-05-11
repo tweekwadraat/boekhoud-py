@@ -40,3 +40,7 @@ class JournalEntriesScreen(Screen):
     def on_journal_entry_lines_back_to_header(self, event: JournalEntryLines.BackToHeader) -> None:
         """Move focus back to the last header field when Esc is pressed on column 0."""
         self.query_one(JournalEntryHeader).focus_last_field()
+    
+    def on_journal_entry_lines_balance_changed(self, event: JournalEntryLines.BalanceChanged) -> None:
+        """Update the hader with the new balance."""
+        self.query_one(JournalEntryHeader).update_balance(event.balance)

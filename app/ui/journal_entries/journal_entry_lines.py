@@ -4,6 +4,7 @@ from textual.widgets import DataTable, Input
 from textual import events
 from textual.coordinate import Coordinate
 from textual.message import Message
+from decimal import Decimal
 
 class JournalEntryLines(Widget):
     """Lines of one journal entry,
@@ -19,6 +20,12 @@ class JournalEntryLines(Widget):
     class BackToHeader(Message):
         """Posted when the user presses Esc on column 0 of a non-half row."""
 
+    class BalanceChanged(Message):
+        """Posted when the balance of the journal entry has changed."""
+        def __init__(self, balance: Decimal) -> None:
+            super().__init__()
+            self.balance = balance
+
     def __init__(self) -> None:
         super().__init__()
         # Houdt bij of er nu een Input openstaat. None = geen edit actief.
@@ -33,6 +40,7 @@ class JournalEntryLines(Widget):
         table.add_row('1300', '1001', 'Factuur April diensten', '121.00')
         table.add_row('8000', '', 'Factuur April diensten', '-100.00')
         table.add_row('1500', '', 'Factuur April diensten', '-21.00')
+        self._recalculate_and_post_balance()
 
     def on_key(self, event: events.Key) -> None:
         table = self.query_one(DataTable)
@@ -57,8 +65,13 @@ class JournalEntryLines(Widget):
             if not self._is_row_empty(table, row) and not self._is_row_complete(table, row):
                 for col in range(self.LAST_COLUMN + 1):
                     table.update_cell_at(Coordinate(row, col), '')
+                self._recalculate_and_post_balance()
                 table.move_cursor(row=row, column=0)
             elif table.cursor_column == 0:
+                if self._is_row_empty(table, row):
+                    row_key = table.coordinate_to_cell_key(Coordinate(row, 0)).row_key
+                    table.remove_row(row_key)
+                    self._recalculate_and_post_balance()
                 self.post_message(self.BackToHeader())
             return
 
@@ -70,6 +83,7 @@ class JournalEntryLines(Widget):
                 if self._is_row_empty(table, table.cursor_row):
                     row_key = table.coordinate_to_cell_key(Coordinate(table.cursor_row, 0)).row_key
                     table.remove_row(row_key)
+                    self._recalculate_and_post_balance()
                     event.stop()
                     event.prevent_default()
                 return
@@ -157,6 +171,7 @@ class JournalEntryLines(Widget):
         table = self.query_one(DataTable)
         coordinate = Coordinate(table.cursor_row, table.cursor_column)
         table.update_cell_at(coordinate, event.value)
+        self._recalculate_and_post_balance()
         self._close_editor()
         self._advance_to_next_field(table.cursor_row, table.cursor_column)
 
@@ -187,7 +202,6 @@ class JournalEntryLines(Widget):
         else:
             table.cursor_coordinate = Coordinate(row, column + 1)
 
-
     def _append_empty_row_and_move_cursor(self) -> None:
         """Voegt onderaan een lege rij toe en zet de cursor op (laatste rij, 0)."""
         table = self.query_one(DataTable)
@@ -212,6 +226,19 @@ class JournalEntryLines(Widget):
                 return False
         return True
 
+    def _calculate_balance(self) -> Decimal:
+        """Sum the amount column over all rows. Empty cells contribute zero."""
+        table = self.query_one(DataTable)
+        total = Decimal('0')
+        for row in range(table.row_count):
+            cell_value = table.get_cell_at(Coordinate(row, self.LAST_COLUMN))
+            if cell_value:
+                total += Decimal(cell_value)
+        return total
+
+    def _recalculate_and_post_balance(self) -> None:
+        """Recalculate the balance and notify the screen of the new value."""
+        self.post_message(self.BalanceChanged(self._calculate_balance()))
 
     def _close_editor(self) -> None:
         """Sluit de Input weer, focus terug naar de tabel."""

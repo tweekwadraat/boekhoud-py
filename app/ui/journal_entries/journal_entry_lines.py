@@ -3,6 +3,7 @@ from textual.app import ComposeResult
 from textual.widgets import DataTable, Input
 from textual import events
 from textual.coordinate import Coordinate
+from textual.message import Message
 
 class JournalEntryLines(Widget):
     """Lines of one journal entry,
@@ -14,6 +15,9 @@ class JournalEntryLines(Widget):
     # 0 = GBnr, 3 = Bedrag — beide bepalend voor saldo en boekhoudregel.
     REQUIRED_COLUMNS = {0, 3}
     LAST_COLUMN = 3
+
+    class BackToHeader(Message):
+        """Posted when the user presses Esc on column 0 of a non-half row."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -54,6 +58,8 @@ class JournalEntryLines(Widget):
                 for col in range(self.LAST_COLUMN + 1):
                     table.update_cell_at(Coordinate(row, col), '')
                 table.move_cursor(row=row, column=0)
+            elif table.cursor_column == 0:
+                self.post_message(self.BackToHeader())
             return
 
         elif event.key == 'up':

@@ -18,7 +18,7 @@ class JournalEntriesScreen(Screen):
         yield footer
 
     def on_mount(self) -> None:
-        self.query_one(DataTable).focus()
+        self.query_one(JournalEntryHeader).focus_first_field()
 
     def action_next(self) -> None:
         pass
@@ -28,3 +28,15 @@ class JournalEntriesScreen(Screen):
 
     def action_back(self) -> None:
         self.app.pop_screen()
+
+    def on_journal_entry_header_completed(self, event: JournalEntryHeader.Completed) -> None:
+        """Move focus from header to the lines zone when header is filled in."""
+        self.query_one(DataTable).focus()
+    
+    def on_journal_entry_header_cancelled(self, event: JournalEntryHeader.Cancelled) -> None:
+        """Return to the menu when the user pressed Esc on the first header field."""
+        self.action_back()
+
+    def on_journal_entry_lines_back_to_header(self, event: JournalEntryLines.BackToHeader) -> None:
+        """Move focus back to the last header field when Esc is pressed on column 0."""
+        self.query_one(JournalEntryHeader).focus_last_field()

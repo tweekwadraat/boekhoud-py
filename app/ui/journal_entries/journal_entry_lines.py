@@ -19,6 +19,9 @@ class JournalEntryLines(Widget):
 
     class BackToHeader(Message):
         """Posted when the user presses Esc on column 0 of a non-half row."""
+        def __init__(self, balance: Decimal) -> None:
+            super().__init__()
+            self.balance = balance
 
     class BalanceChanged(Message):
         """Posted when the balance of the journal entry has changed."""
@@ -72,7 +75,8 @@ class JournalEntryLines(Widget):
                     row_key = table.coordinate_to_cell_key(Coordinate(row, 0)).row_key
                     table.remove_row(row_key)
                     self._recalculate_and_post_balance()
-                self.post_message(self.BackToHeader())
+                balance = self._calculate_balance()
+                self.post_message(self.BackToHeader(balance))
             return
 
         elif event.key == 'up':

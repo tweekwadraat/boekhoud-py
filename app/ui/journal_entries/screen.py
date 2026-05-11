@@ -3,6 +3,7 @@ from textual.screen import Screen
 from textual.widgets import Footer, DataTable
 from app.ui.journal_entries.journal_entry_header import JournalEntryHeader
 from app.ui.journal_entries.journal_entry_lines import JournalEntryLines
+from decimal import Decimal
 
 
 class JournalEntriesScreen(Screen):
@@ -38,8 +39,11 @@ class JournalEntriesScreen(Screen):
         self.action_back()
 
     def on_journal_entry_lines_back_to_header(self, event: JournalEntryLines.BackToHeader) -> None:
-        """Move focus back to the last header field when Esc is pressed on column 0."""
-        self.query_one(JournalEntryHeader).focus_last_field()
+        """Handle Esc from the lines zone: return to header if balanced, else show modal"""
+        if event.balance == Decimal('0'):
+            self.query_one(JournalEntryHeader).focus_last_field()
+        else:
+            self.notify(f'TODO modal — saldo is {event.balance}')
     
     def on_journal_entry_lines_balance_changed(self, event: JournalEntryLines.BalanceChanged) -> None:
         """Update the hader with the new balance."""

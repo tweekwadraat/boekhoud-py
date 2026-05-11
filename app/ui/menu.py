@@ -4,7 +4,7 @@ from textual.screen import Screen
 from textual.widgets import Label, ListView, ListItem
 from dataclasses import dataclass
 from app.ui.widgets.statusbalk import DOSFooter
-from app.ui.dialogs.confirm import ConfirmQuitScreen
+from app.ui.dialogs.confirm_quit_screen import ConfirmQuitScreen
 
 @dataclass(frozen=True)
 class MenuItem:

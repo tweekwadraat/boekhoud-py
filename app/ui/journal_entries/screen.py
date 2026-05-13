@@ -3,6 +3,7 @@ from textual.screen import Screen
 from textual.widgets import Footer, DataTable
 from app.ui.journal_entries.journal_entry_header import JournalEntryHeader
 from app.ui.journal_entries.journal_entry_lines import JournalEntryLines
+from app.ui.dialogs.confirm_discard_screen import ConfirmDiscardScreen
 from decimal import Decimal
 
 
@@ -44,7 +45,13 @@ class JournalEntriesScreen(Screen):
         if event.balance == Decimal('0'):
             self.query_one(JournalEntryHeader).focus_last_field()
         else:
-            self.notify(f'TODO modal — saldo is {event.balance}')
+            def on_discard_response(result: bool | None) -> None:
+                if result:
+                    # weggooien: clear lines, clear header, focus naar Dagboek
+                    self.query_one(JournalEntryLines).clear()
+                    self.query_one(JournalEntryHeader).clear()
+                    self.query_one(JournalEntryHeader).focus_first_field()
+            self.app.push_screen(ConfirmDiscardScreen(), on_discard_response)
     
     def on_journal_entry_lines_balance_changed(self, event: JournalEntryLines.BalanceChanged) -> None:
         """Update the hader with the new balance."""

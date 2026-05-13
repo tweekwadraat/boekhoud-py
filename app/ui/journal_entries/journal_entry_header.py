@@ -116,7 +116,13 @@ class JournalEntryHeader(Widget):
         else:
             self.post_message(self.Cancelled())
 
-
+    def clear(self) -> None:
+        """Reset the header to empty.
+    
+        Clears all four input fields so the user can start a fresh entry.
+        Balance is reset separately via the lines zone."""
+        for field_id in self.FIELD_ORDER:
+            self.query_one(f'#{field_id}', EscapableInput).value = ''
 
 
 

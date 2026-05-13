@@ -250,3 +250,13 @@ class JournalEntryLines(Widget):
             self._editing_input.remove()
             self._editing_input = None
         self.query_one(DataTable).focus()
+
+    def clear(self) -> None:
+        """Reset the journal entry lines to empty.
+        
+        Removes all rows, then adds one empty row so the cursor has a starting point and user
+        can type immediately. Balance is recalculated."""
+        table = self.query_one(DataTable)
+        table.clear()
+        table.add_row('', '', '', '')
+        self._recalculate_and_post_balance()

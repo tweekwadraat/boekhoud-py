@@ -5,6 +5,7 @@ from textual import events
 from textual.coordinate import Coordinate
 from textual.message import Message
 from decimal import Decimal, InvalidOperation
+from rich.text import Text
 
 class JournalEntryLines(Widget):
     """Lines of one journal entry,
@@ -40,9 +41,9 @@ class JournalEntryLines(Widget):
     def on_mount(self) -> None:
         table = self.query_one(DataTable)
         table.add_columns('Grootboeknr.', 'Relatie', 'Omschrijving', 'Bedrag')
-        table.add_row('1300', '1001', 'Factuur April diensten', '121.00')
-        table.add_row('8000', '', 'Factuur April diensten', '-100.00')
-        table.add_row('1500', '', 'Factuur April diensten', '-21.00')
+        table.add_row('1300', '1001', 'Factuur', self._format_amount_cell('121.00'))
+        table.add_row('8000', '', 'Factuur April diensten', self._format_amount_cell('-100.00'))
+        table.add_row('1500', '', 'Factuur April diensten', self._format_amount_cell('-21.00'))
         self._recalculate_and_post_balance()
 
     def on_key(self, event: events.Key) -> None:
@@ -55,7 +56,7 @@ class JournalEntryLines(Widget):
                 event.prevent_default()
                 self._close_editor()
             return
-        
+
         if event.key == 'enter':
             event.stop()
             event.prevent_default()
@@ -98,9 +99,9 @@ class JournalEntryLines(Widget):
             if table.cursor_column == 0 and self._is_row_complete(table, table.cursor_row):
                 if table.cursor_row == table.row_count - 1:
                     self._append_empty_row_and_move_cursor()
-                    event.stop()                # ← wij doen het werk, Textual mag niet ook nog
+                    event.stop()
                     event.prevent_default()
-                return                          # ← bij niet-laatste rij: Textual doet de cursor-beweging
+                return
             event.stop()
             event.prevent_default()
 
@@ -135,7 +136,7 @@ class JournalEntryLines(Widget):
         if editor is None:
             return
         editor.action_end()
-    
+
     def _position_editor_over_current_cell(
         self, editor: Input, table: DataTable
     ) -> None:
@@ -178,8 +179,8 @@ class JournalEntryLines(Widget):
             parsed = self._parse_amount(event.value)
             if parsed is None:
                 self.notify("Ongeldig bedrag")
-                return 
-            value_to_store = str(parsed)
+                return
+            value_to_store = self._format_amount_cell(str(parsed))
         else:
             value_to_store = event.value
         table.update_cell_at(coordinate, value_to_store)
@@ -200,7 +201,7 @@ class JournalEntryLines(Widget):
         table = self.query_one(DataTable)
         # Fase 1: bewaking — verplichte cel mag niet leeg zijn
         if column in self.REQUIRED_COLUMNS:
-            value = table.get_cell_at(Coordinate(row, column))
+            value = self._get_cell_str(table, row, column)
             if not value.strip():
                 return
 
@@ -216,26 +217,35 @@ class JournalEntryLines(Widget):
     def _append_empty_row_and_move_cursor(self) -> None:
         """Voegt onderaan een lege rij toe en zet de cursor op (laatste rij, 0)."""
         table = self.query_one(DataTable)
-        table.add_row("", "", "", "")
+        table.add_row("", "", "", self._format_amount_cell(""))
         table.cursor_coordinate = Coordinate(table.row_count - 1, 0)
 
     def _is_row_complete(self, table: DataTable, row: int) -> bool:
-        """Geeft true terug als verplichte velden niet leeg zijn"""
+        """Return True if all required cells in the row are non-empty."""
         for column in self.REQUIRED_COLUMNS:
-            coordinate = Coordinate(row, column)
-            value = table.get_cell_at(coordinate)
+            value = self._get_cell_str(table, row, column)
             if not value.strip():
                 return False
         return True
 
     def _is_row_empty(self, table: DataTable, row: int) -> bool:
-        """Geeft true terug als alle velden leeg zijn"""
-        for column in range(len(table.columns)):                      # alle kolommen
-            coordinate = Coordinate(row, column)
-            value = table.get_cell_at(coordinate)
-            if value.strip():                              # cel niet leeg?
+        """Return True if all cells in the row are empty."""
+        for column in range(len(table.columns)):
+            value = self._get_cell_str(table, row, column)
+            if value.strip():
                 return False
         return True
+
+    def _get_cell_str(self, table: DataTable, row: int, column: int) -> str:
+        """Return cell content as a plain string, regardless of internal type.
+
+        Cells in the amount column are stored as Rich Text objects (for
+        right-alignment), while other cells are plain strings. This helper
+        hides that distinction so callers can always treat cell content as
+        a string.
+        """
+        raw = table.get_cell_at(Coordinate(row, column))
+        return str(raw) if raw else ''
 
     def _parse_amount(self, raw: str) -> Decimal | None:
         """Parse a user-entered amount. Return Decimal or None if invalid."""
@@ -247,14 +257,18 @@ class JournalEntryLines(Widget):
             return None
         return value.quantize(Decimal('0.01'))
 
+    def _format_amount_cell(self, value: str) -> Text:
+        """Wrap an amount value in a right-aligned Text cell."""
+        return Text(value, justify="right")
+
     def _calculate_balance(self) -> Decimal:
         """Sum the amount column over all rows. Empty cells contribute zero."""
         table = self.query_one(DataTable)
         total = Decimal('0')
         for row in range(table.row_count):
-            cell_value = table.get_cell_at(Coordinate(row, self.LAST_COLUMN))
-            if cell_value:
-                total += Decimal(cell_value)
+            value = self._get_cell_str(table, row, self.LAST_COLUMN)
+            if value:
+                total += Decimal(value)
         return total
 
     def _recalculate_and_post_balance(self) -> None:
@@ -270,16 +284,17 @@ class JournalEntryLines(Widget):
 
     def clear(self) -> None:
         """Reset the journal entry lines to empty.
-        
+
         Removes all rows, then adds one empty row so the cursor has a starting point and user
-        can type immediately. Balance is recalculated."""
+        can type immediately. Balance is recalculated.
+        """
         table = self.query_one(DataTable)
         table.clear()
-        table.add_row('', '', '', '')
+        table.add_row('', '', '', self._format_amount_cell(''))
         self._recalculate_and_post_balance()
 
     def ensure_row(self) -> None:
         """Make sure the table has at least one row."""
         table = self.query_one(DataTable)
         if table.row_count == 0:
-            table.add_row('', '', '', '')
+            table.add_row('', '', '', self._format_amount_cell(''))

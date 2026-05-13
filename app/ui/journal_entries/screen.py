@@ -32,6 +32,7 @@ class JournalEntriesScreen(Screen):
 
     def on_journal_entry_header_completed(self, event: JournalEntryHeader.Completed) -> None:
         """Move focus from header to the lines zone when header is filled in."""
+        self.query_one(JournalEntryLines).ensure_row()
         self.query_one(DataTable).focus()
     
     def on_journal_entry_header_cancelled(self, event: JournalEntryHeader.Cancelled) -> None:

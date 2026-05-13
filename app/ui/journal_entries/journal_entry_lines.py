@@ -190,7 +190,6 @@ class JournalEntryLines(Widget):
         de versprong stilzwijgend — de cursor blijft staan.
         """
         table = self.query_one(DataTable)
-
         # Fase 1: bewaking — verplichte cel mag niet leeg zijn
         if column in self.REQUIRED_COLUMNS:
             value = table.get_cell_at(Coordinate(row, column))
@@ -260,3 +259,9 @@ class JournalEntryLines(Widget):
         table.clear()
         table.add_row('', '', '', '')
         self._recalculate_and_post_balance()
+
+    def ensure_row(self) -> None:
+        """Make sure the table has at least one row."""
+        table = self.query_one(DataTable)
+        if table.row_count == 0:
+            table.add_row('', '', '', '')

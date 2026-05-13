@@ -18,6 +18,16 @@ class JournalEntryLines(Widget):
     REQUIRED_COLUMNS = {0, 3}
     LAST_COLUMN = 3
 
+    DEFAULT_CSS = """
+    JournalEntryLines {
+        height: 1fr;
+    }
+    
+    JournalEntryLines DataTable {
+        height: 100%;
+    }
+    """
+
     class BackToHeader(Message):
         """Posted when the user presses Esc on column 0 of a non-half row."""
         def __init__(self, balance: Decimal) -> None:

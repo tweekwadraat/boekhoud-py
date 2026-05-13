@@ -20,7 +20,6 @@ class EscapableInput(Input):
         """Post EscapePressed so a parent widget can act on it."""
         self.post_message(self.EscapePressed(self.id))
 
-
 class JournalEntryHeader(Widget):
     """Header of one journal entry, shown on the journal entries screen.
     
@@ -53,6 +52,8 @@ class JournalEntryHeader(Widget):
     JournalEntryHeader Input:focus {
         border: none;
         height: 1;
+        background: #FFFFFF;
+        color: #000000;
     }
 
     JournalEntryHeader Static.out-of-balance {

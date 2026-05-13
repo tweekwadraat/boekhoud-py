@@ -18,7 +18,6 @@ class MenuItem:
     label: str
     shortcut: str
 
-
 class MainMenuScreen(Screen):
     """
     DOS-style main menu. Items are activated via arrow keys + Enter,
@@ -48,11 +47,12 @@ class MainMenuScreen(Screen):
         MenuItem(id='journal_entries', label='- B   Boekingen', shortcut='b'),
         
         MenuItem(id='financial_reports', label='Y   Financiële rapportage', shortcut='y'),
+        MenuItem(id='balance', label='- Z   Balans', shortcut='z'),
+        MenuItem(id='pandl', label='- P   Winst- en verliesrekening', shortcut='p'),
         MenuItem(id='invoicing', label='A   Facturering', shortcut='a'),
         MenuItem(id='system_functions', label='S   Systeemfuncties', shortcut='s'),
         MenuItem(id='quit_app', label='Q   Afsluiten programma', shortcut='q'),
     ]
-
 
     def compose(self) -> ComposeResult:
 
@@ -62,7 +62,6 @@ class MainMenuScreen(Screen):
         #footer
         footer = DOSFooter()
         yield footer
-
 
     def _activate(self, item_id: str) -> None:
         """Centrally dispatch a menu item by its id."""

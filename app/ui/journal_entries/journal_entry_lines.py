@@ -4,7 +4,7 @@ from textual.widgets import DataTable, Input
 from textual import events
 from textual.coordinate import Coordinate
 from textual.message import Message
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 class JournalEntryLines(Widget):
     """Lines of one journal entry,
@@ -174,7 +174,15 @@ class JournalEntryLines(Widget):
         """Enter in de Input → waarde opslaan in de cel en Input sluiten."""
         table = self.query_one(DataTable)
         coordinate = Coordinate(table.cursor_row, table.cursor_column)
-        table.update_cell_at(coordinate, event.value)
+        if coordinate.column == self.LAST_COLUMN:
+            parsed = self._parse_amount(event.value)
+            if parsed is None:
+                self.notify("Ongeldig bedrag")
+                return 
+            value_to_store = str(parsed)
+        else:
+            value_to_store = event.value
+        table.update_cell_at(coordinate, value_to_store)
         self._recalculate_and_post_balance()
         self._close_editor()
         self._advance_to_next_field(table.cursor_row, table.cursor_column)
@@ -228,6 +236,16 @@ class JournalEntryLines(Widget):
             if value.strip():                              # cel niet leeg?
                 return False
         return True
+
+    def _parse_amount(self, raw: str) -> Decimal | None:
+        """Parse a user-entered amount. Return Decimal or None if invalid."""
+        try:
+            value = Decimal(raw)
+        except InvalidOperation:
+            return None
+        if value.as_tuple().exponent < -2:
+            return None
+        return value.quantize(Decimal('0.01'))
 
     def _calculate_balance(self) -> Decimal:
         """Sum the amount column over all rows. Empty cells contribute zero."""
